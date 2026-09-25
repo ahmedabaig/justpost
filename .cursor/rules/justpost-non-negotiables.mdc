@@ -1,0 +1,32 @@
+---
+description: Core safety invariants for JustPost
+alwaysApply: true
+---
+
+# JustPost — core safety invariants
+
+## Product direction
+- JustPost is intended to become a Flutter mobile application for iOS and Android.
+- Preserve mobile app scaffolding, platform projects, and relevant service configuration unless replacement or removal is explicitly requested.
+- During cleanup, classify future mobile-app code separately from dead or irrelevant code.
+
+## Untrusted AI output
+- Treat every AI analysis, graph, permission value, and edit instruction as untrusted input.
+- Derive effective edit permissions from trusted application policy; never trust permissions emitted by a model or supplied in JSON.
+- Check every proposed edit against the permission filter before dispatch. Never bypass or weaken this boundary.
+
+## Generated-image verification
+- Verify protected and locked regions against the original before accepting a generated image.
+- If verification fails or the result is uncertain, return the unedited original. Never ship a guess.
+
+## Layout data
+- Store element positions and sizes as fractional 0–1 coordinates, not absolute pixels.
+- Use one layout representation for preview and export so resolution changes do not alter composition.
+
+## Generated code and secrets
+- Never hand-edit `*.freezed.dart` or `*.g.dart`; fix the source and rerun code generation.
+- Never expose, log, or commit API keys, credentials, or secret environment files.
+
+## Planning
+- Do not assume a fixed roadmap or phase plan. Follow the current request and the current codebase.
+- Flag architecture conflicts explicitly instead of silently choosing one interpretation.
