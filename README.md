@@ -55,9 +55,14 @@ flutter pub get
 flutter run
 ```
 
-The Flutter app currently initializes Firebase and presents an empty
-application shell. Product screens and pipeline integration have not yet been
-implemented.
+The Flutter app initializes Firebase and presents a dark-themed shell with
+three tabs — Create, Library, and You — behind a floating glass navigation
+pill. Create can pick a slideshow from the photo library and review it slide by
+slide. Pipeline integration has not yet been implemented.
+
+UI code is organized as `lib/theme` (design tokens and `ThemeData`),
+`lib/shell` (the layout shell and navigation), `lib/widgets` (shared
+primitives), and `lib/features/<feature>` (screens).
 
 ## Important safety constraints
 
