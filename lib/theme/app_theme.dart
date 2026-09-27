@@ -3,33 +3,32 @@ import 'package:flutter/material.dart';
 
 /// Colour tokens for the JustPost studio palette.
 ///
-/// JustPost is dark-first on purpose: slides are the hero content, so a deep
-/// canvas keeps imagery and the translucent chrome reading as one surface.
+/// Warm, light JustPost palette.
 abstract final class AppColors {
-  static const canvas = Color(0xFF0A0910);
-  static const surface = Color(0xFF16141E);
-  static const surfaceRaised = Color(0xFF1E1B29);
+  static const canvas = Color(0xFFFFFDF5);
+  static const surface = Color(0xFFFFFFFF);
+  static const surfaceRaised = Color(0xFFF4EFE6);
 
-  /// Fill for blurred chrome. Kept translucent so the ambient glow shows.
-  static const glass = Color(0xAD15131E);
+  /// Clear frosted chrome that lets the warm page canvas show through.
+  static const glass = Color(0x33FFFFFF);
 
-  static const hairline = Color(0x14FFFFFF);
-  static const hairlineStrong = Color(0x26FFFFFF);
-  static const fillSubtle = Color(0x14FFFFFF);
+  static const hairline = Color(0x140F0D14);
+  static const hairlineStrong = Color(0x240F0D14);
+  static const fillSubtle = Color(0x0F0F0D14);
 
-  static const textPrimary = Color(0xFFF4F2F8);
-  static const textSecondary = Color(0xFFA7A2B4);
-  static const textTertiary = Color(0xFF6B6678);
+  static const textPrimary = Color(0xFF1C1922);
+  static const textSecondary = Color(0xFF68616F);
+  static const textTertiary = Color(0xFF918A97);
 
-  static const accent = Color(0xFF7C5CFF);
-  static const accentBright = Color(0xFFB4A2FF);
-  static const accentWash = Color(0x1F7C5CFF);
-  static const danger = Color(0xFFFF7089);
+  static const accent = Color(0xFF1F1717);
+  static const accentBright = Color(0xFF1F1717);
+  static const accentWash = Color(0x171F1717);
+  static const danger = Color(0xFFD94B65);
 
   static const accentGradient = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: [Color(0xFF9D80FF), Color(0xFF5533E4)],
+    colors: [Color(0xFF3A2B2B), Color(0xFF1F1717)],
   );
 }
 
@@ -52,7 +51,7 @@ ThemeData buildJustPostTheme() {
   final scheme =
       ColorScheme.fromSeed(
         seedColor: AppColors.accent,
-        brightness: Brightness.dark,
+        brightness: Brightness.light,
       ).copyWith(
         primary: AppColors.accent,
         onPrimary: Colors.white,
@@ -68,7 +67,7 @@ ThemeData buildJustPostTheme() {
     scaffoldBackgroundColor: AppColors.canvas,
     canvasColor: AppColors.canvas,
     cupertinoOverrideTheme: const CupertinoThemeData(
-      brightness: Brightness.dark,
+      brightness: Brightness.light,
     ),
     iconTheme: const IconThemeData(color: AppColors.textSecondary),
     dividerTheme: const DividerThemeData(
@@ -134,9 +133,9 @@ ThemeData buildJustPostTheme() {
     // Floating snack bars clear the navigation pill instead of hiding behind it.
     snackBarTheme: SnackBarThemeData(
       behavior: SnackBarBehavior.floating,
-      backgroundColor: AppColors.surfaceRaised,
+      backgroundColor: const Color(0xFF25212D),
       contentTextStyle: const TextStyle(
-        color: AppColors.textPrimary,
+        color: Colors.white,
         fontSize: 13.5,
         height: 1.35,
         fontWeight: FontWeight.w600,

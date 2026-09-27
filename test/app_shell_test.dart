@@ -26,9 +26,9 @@ void main() {
   ) async {
     await pumpShell(tester);
 
-    expect(selectedIndex(tester), 0);
+    expect(selectedIndex(tester), 1);
     expect(find.byType(FloatingNavBar), findsOneWidget);
-    expect(find.text('Choose slides'), findsOneWidget);
+    expect(find.byKey(const Key('upload-slides-button')), findsOneWidget);
 
     final screenHeight =
         tester.view.physicalSize.height / tester.view.devicePixelRatio;
@@ -41,7 +41,7 @@ void main() {
 
     await tester.tap(navItem('Library'));
     await tester.pumpAndSettle();
-    expect(selectedIndex(tester), 1);
+    expect(selectedIndex(tester), 0);
 
     await tester.tap(navItem('You'));
     await tester.pumpAndSettle();
@@ -57,6 +57,9 @@ void main() {
     await tester.pumpAndSettle();
 
     // The Create page is still in the tree behind the active tab.
-    expect(find.text('Choose slides', skipOffstage: false), findsOneWidget);
+    expect(
+      find.byKey(const Key('create-screen'), skipOffstage: false),
+      findsOneWidget,
+    );
   });
 }

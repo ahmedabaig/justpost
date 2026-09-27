@@ -11,11 +11,13 @@ class _Destination {
     required this.label,
     required this.icon,
     required this.activeIcon,
+    this.isAction = false,
   });
 
   final String label;
   final IconData icon;
   final IconData activeIcon;
+  final bool isAction;
 }
 
 /// Glass capsule that floats over the page content.
@@ -32,14 +34,15 @@ class FloatingNavBar extends StatelessWidget {
 
   static const _destinations = [
     _Destination(
-      label: 'Create',
-      icon: CupertinoIcons.sparkles,
-      activeIcon: CupertinoIcons.sparkles,
-    ),
-    _Destination(
       label: 'Library',
       icon: CupertinoIcons.rectangle_stack,
       activeIcon: CupertinoIcons.rectangle_stack_fill,
+    ),
+    _Destination(
+      label: 'Upload Slides',
+      icon: CupertinoIcons.plus,
+      activeIcon: CupertinoIcons.plus,
+      isAction: true,
     ),
     _Destination(
       label: 'You',
@@ -76,65 +79,29 @@ class FloatingNavBar extends StatelessWidget {
               height: barHeight,
               borderRadius: BorderRadius.circular(barHeight / 2),
               blurSigma: 16,
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  final itemWidth = constraints.maxWidth / _destinations.length;
-
-                  return Stack(
-                    children: [
-                      AnimatedPositioned(
-                        duration: AppMotion.base,
-                        curve: AppMotion.enter,
-                        left: itemWidth * selectedIndex,
-                        width: itemWidth,
-                        top: 0,
-                        bottom: 0,
-                        child: const Padding(
-                          padding: EdgeInsets.all(6),
-                          child: _SelectionCapsule(),
-                        ),
+              borderColor: AppColors.hairlineStrong,
+              shadows: const [
+                BoxShadow(
+                  color: Color(0x1A1C1922),
+                  blurRadius: 28,
+                  offset: Offset(0, 12),
+                ),
+              ],
+              child: Row(
+                children: [
+                  for (var i = 0; i < _destinations.length; i++)
+                    Expanded(
+                      child: _NavItem(
+                        destination: _destinations[i],
+                        selected: i == selectedIndex,
+                        onTap: () => onSelected(i),
                       ),
-                      Row(
-                        children: [
-                          for (var i = 0; i < _destinations.length; i++)
-                            Expanded(
-                              child: _NavItem(
-                                destination: _destinations[i],
-                                selected: i == selectedIndex,
-                                onTap: () => onSelected(i),
-                              ),
-                            ),
-                        ],
-                      ),
-                    ],
-                  );
-                },
+                    ),
+                ],
               ),
             ),
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _SelectionCapsule extends StatelessWidget {
-  const _SelectionCapsule();
-
-  @override
-  Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(AppRadius.pill),
-        gradient: const LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [Color(0x2EFFFFFF), Color(0x12FFFFFF)],
-        ),
-        border: Border.all(color: AppColors.hairlineStrong, width: 0.5),
-        boxShadow: const [
-          BoxShadow(color: Color(0x4D7C5CFF), blurRadius: 20, spreadRadius: -4),
-        ],
       ),
     );
   }
@@ -153,7 +120,20 @@ class _NavItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = selected ? AppColors.textPrimary : AppColors.textTertiary;
+    if (destination.isAction) {
+      return Semantics(
+        key: const Key('upload-slides-button'),
+        button: true,
+        label: destination.label,
+        child: Pressable(
+          onTap: onTap,
+          scale: 0.9,
+          child: const Center(child: _NavPlus()),
+        ),
+      );
+    }
+
+    final color = selected ? AppColors.accent : AppColors.textTertiary;
 
     return Semantics(
       button: true,
@@ -190,6 +170,59 @@ class _NavItem extends StatelessWidget {
                 letterSpacing: 0.1,
               ),
               child: Text(destination.label),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _NavPlus extends StatelessWidget {
+  const _NavPlus();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 46,
+      height: 46,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: AppColors.accent,
+        borderRadius: BorderRadius.circular(15),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x261F1717),
+            blurRadius: 18,
+            offset: Offset(0, 8),
+          ),
+        ],
+      ),
+      child: const SizedBox(
+        width: 20,
+        height: 20,
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            SizedBox(
+              width: 20,
+              height: 3,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: CupertinoColors.white,
+                  borderRadius: BorderRadius.all(Radius.circular(2)),
+                ),
+              ),
+            ),
+            SizedBox(
+              width: 3,
+              height: 20,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: CupertinoColors.white,
+                  borderRadius: BorderRadius.all(Radius.circular(2)),
+                ),
+              ),
             ),
           ],
         ),

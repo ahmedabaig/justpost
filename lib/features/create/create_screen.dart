@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:ui';
 
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
@@ -13,7 +14,9 @@ import '../../widgets/buttons.dart';
 import '../../widgets/pressable.dart';
 
 class CreateScreen extends StatefulWidget {
-  const CreateScreen({super.key});
+  const CreateScreen({super.key, required this.uploadRequests});
+
+  final ValueListenable<int> uploadRequests;
 
   @override
   State<CreateScreen> createState() => _CreateScreenState();
@@ -33,7 +36,25 @@ class _CreateScreenState extends State<CreateScreen> {
   bool _isPicking = false;
 
   @override
+  void initState() {
+    super.initState();
+    widget.uploadRequests.addListener(_handleUploadRequest);
+  }
+
+  @override
+  void didUpdateWidget(CreateScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.uploadRequests != widget.uploadRequests) {
+      oldWidget.uploadRequests.removeListener(_handleUploadRequest);
+      widget.uploadRequests.addListener(_handleUploadRequest);
+    }
+  }
+
+  void _handleUploadRequest() => _pickSlides();
+
+  @override
   void dispose() {
+    widget.uploadRequests.removeListener(_handleUploadRequest);
     _pageController.dispose();
     _stripController.dispose();
     super.dispose();
@@ -105,6 +126,7 @@ class _CreateScreenState extends State<CreateScreen> {
     final hasSlides = _slides.isNotEmpty;
 
     return AppScreen(
+      key: const Key('create-screen'),
       leading: const BrandLockup(),
       actions: [
         if (hasSlides)
@@ -134,45 +156,7 @@ class _CreateScreenState extends State<CreateScreen> {
   }
 
   Widget _buildEmptyState(BuildContext context) {
-    final theme = Theme.of(context);
-    final bottomInset = MediaQuery.paddingOf(context).bottom;
-
-    return CenteredScrollBody(
-      key: const ValueKey('empty'),
-      padding: EdgeInsets.fromLTRB(28, 4, 28, bottomInset + 4),
-      children: [
-        const _SlideshowGlyph(),
-        const SizedBox(height: 38),
-        Text(
-          'Start with something\nworth repeating.',
-          textAlign: TextAlign.center,
-          style: theme.textTheme.displaySmall,
-        ),
-        const SizedBox(height: 14),
-        Text(
-          'Pick the slides from a post that already worked. JustPost keeps them '
-          'in the exact order you choose.',
-          textAlign: TextAlign.center,
-          style: theme.textTheme.bodyLarge,
-        ),
-        const SizedBox(height: 34),
-        SizedBox(
-          width: double.infinity,
-          child: PrimaryButton(
-            label: 'Choose slides',
-            icon: CupertinoIcons.photo_on_rectangle,
-            busy: _isPicking,
-            onPressed: _pickSlides,
-          ),
-        ),
-        const SizedBox(height: 16),
-        Text(
-          'Tap them in posting order — hook first, payoff last.',
-          textAlign: TextAlign.center,
-          style: theme.textTheme.labelMedium,
-        ),
-      ],
-    );
+    return const SizedBox.expand(key: ValueKey('empty'));
   }
 
   Widget _buildSlideshow(BuildContext context) {
@@ -415,7 +399,7 @@ class _SlideThumbnail extends StatelessWidget {
               width: selected ? 1.5 : 1,
             ),
             boxShadow: selected
-                ? const [BoxShadow(color: Color(0x4D7C5CFF), blurRadius: 16)]
+                ? const [BoxShadow(color: Color(0x4D1F1717), blurRadius: 16)]
                 : null,
           ),
           child: ClipRRect(
@@ -461,80 +445,6 @@ class _SlideThumbnail extends StatelessWidget {
             ),
           ),
         ),
-      ),
-    );
-  }
-}
-
-/// Stack-of-slides illustration used on the empty Create screen.
-class _SlideshowGlyph extends StatelessWidget {
-  const _SlideshowGlyph();
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: 152,
-      height: 160,
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          Transform.rotate(
-            angle: -0.13,
-            child: const _GlyphCard(color: Color(0x14FFFFFF)),
-          ),
-          Transform.translate(
-            offset: const Offset(19, 3),
-            child: Transform.rotate(
-              angle: 0.1,
-              child: const _GlyphCard(color: Color(0x2E7C5CFF)),
-            ),
-          ),
-          Container(
-            width: 98,
-            height: 138,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [Color(0xFF241F33), Color(0xFF14121C)],
-              ),
-              borderRadius: BorderRadius.circular(22),
-              border: Border.all(color: AppColors.hairlineStrong, width: 0.5),
-              boxShadow: const [
-                BoxShadow(
-                  color: Color(0x73000000),
-                  blurRadius: 30,
-                  offset: Offset(0, 16),
-                ),
-              ],
-            ),
-            child: const Icon(
-              CupertinoIcons.sparkles,
-              color: AppColors.accentBright,
-              size: 32,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _GlyphCard extends StatelessWidget {
-  const _GlyphCard({required this.color});
-
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 92,
-      height: 130,
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.hairline, width: 0.5),
       ),
     );
   }

@@ -20,12 +20,30 @@ class AppShell extends StatefulWidget {
 }
 
 class _AppShellState extends State<AppShell> {
-  int _selectedIndex = 0;
+  static const int _createIndex = 1;
+
+  final ValueNotifier<int> _uploadRequests = ValueNotifier(0);
+  int _selectedIndex = _createIndex;
 
   void _select(int index) {
+    if (index == _createIndex) {
+      HapticFeedback.mediumImpact();
+      if (_selectedIndex != _createIndex) {
+        setState(() => _selectedIndex = _createIndex);
+      }
+      _uploadRequests.value++;
+      return;
+    }
+
     if (index == _selectedIndex) return;
     HapticFeedback.selectionClick();
     setState(() => _selectedIndex = index);
+  }
+
+  @override
+  void dispose() {
+    _uploadRequests.dispose();
+    super.dispose();
   }
 
   @override
@@ -36,10 +54,10 @@ class _AppShellState extends State<AppShell> {
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: const SystemUiOverlayStyle(
         statusBarColor: Colors.transparent,
-        statusBarBrightness: Brightness.dark,
-        statusBarIconBrightness: Brightness.light,
+        statusBarBrightness: Brightness.light,
+        statusBarIconBrightness: Brightness.dark,
         systemNavigationBarColor: Colors.transparent,
-        systemNavigationBarIconBrightness: Brightness.light,
+        systemNavigationBarIconBrightness: Brightness.dark,
       ),
       child: Scaffold(
         extendBody: true,
@@ -58,10 +76,10 @@ class _AppShellState extends State<AppShell> {
                 ),
                 child: _FadeThroughStack(
                   index: _selectedIndex,
-                  children: const [
-                    CreateScreen(),
-                    LibraryScreen(),
-                    ProfileScreen(),
+                  children: [
+                    const LibraryScreen(),
+                    CreateScreen(uploadRequests: _uploadRequests),
+                    const ProfileScreen(),
                   ],
                 ),
               ),
