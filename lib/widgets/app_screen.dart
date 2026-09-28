@@ -14,10 +14,7 @@ class AppScreen extends StatelessWidget {
     this.title,
     this.leading,
     this.actions = const [],
-  }) : assert(
-         title != null || leading != null,
-         'A screen needs either a title or a leading lockup.',
-       );
+  });
 
   final Widget child;
   final String? title;
@@ -28,28 +25,38 @@ class AppScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final heading =
         leading ??
-        Text(
-          title!,
-          style: Theme.of(context).textTheme.headlineMedium,
-          overflow: TextOverflow.ellipsis,
-        );
+        (title == null
+            ? null
+            : Text(
+                title!,
+                style: Theme.of(context).textTheme.headlineMedium,
+                overflow: TextOverflow.ellipsis,
+              ));
+    final showHeader = heading != null || actions.isNotEmpty;
 
     return SafeArea(
       bottom: false,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(24, 12, 20, 14),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Align(alignment: Alignment.centerLeft, child: heading),
-                ),
-                ...actions,
-              ],
+          if (showHeader)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 12, 20, 14),
+              child: Row(
+                children: [
+                  if (heading != null)
+                    Expanded(
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: heading,
+                      ),
+                    )
+                  else
+                    const Spacer(),
+                  ...actions,
+                ],
+              ),
             ),
-          ),
           Expanded(child: child),
         ],
       ),

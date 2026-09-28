@@ -9,7 +9,6 @@ import 'package:image_picker/image_picker.dart';
 
 import '../../theme/app_theme.dart';
 import '../../widgets/app_screen.dart';
-import '../../widgets/brand.dart';
 import '../../widgets/buttons.dart';
 import '../../widgets/pressable.dart';
 
@@ -91,12 +90,59 @@ class _CreateScreenState extends State<CreateScreen> {
     }
   }
 
-  void _clearSlides() {
+  void _deleteCurrentSlide() {
+    if (_slides.isEmpty) return;
+
     HapticFeedback.selectionClick();
+    final nextSlides = List<XFile>.of(_slides)..removeAt(_currentSlide);
+    final nextIndex = nextSlides.isEmpty
+        ? 0
+        : _currentSlide < nextSlides.length
+        ? _currentSlide
+        : nextSlides.length - 1;
+
     setState(() {
-      _slides = const [];
-      _currentSlide = 0;
+      _slides = nextSlides;
+      _currentSlide = nextIndex;
     });
+
+    if (nextSlides.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || !_pageController.hasClients) return;
+        _pageController.jumpToPage(nextIndex);
+        _revealThumbnail(nextIndex);
+      });
+    }
+  }
+
+  Future<void> _replaceCurrentSlide() async {
+    if (_isPicking || _slides.isEmpty) return;
+
+    final index = _currentSlide;
+    setState(() => _isPicking = true);
+
+    try {
+      final replacement = await _picker.pickImage(source: ImageSource.gallery);
+      if (!mounted || replacement == null || index >= _slides.length) return;
+
+      final nextSlides = List<XFile>.of(_slides);
+      nextSlides[index] = replacement;
+      setState(() => _slides = nextSlides);
+      HapticFeedback.lightImpact();
+    } catch (error, stackTrace) {
+      debugPrint('JustPost: replacing slide failed — $error\n$stackTrace');
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'We could not replace this slide. Check photo access in Settings '
+            'and try again.',
+          ),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _isPicking = false);
+    }
   }
 
   void _selectSlide(int index) {
@@ -127,15 +173,6 @@ class _CreateScreenState extends State<CreateScreen> {
 
     return AppScreen(
       key: const Key('create-screen'),
-      leading: const BrandLockup(),
-      actions: [
-        if (hasSlides)
-          GlassIconButton(
-            icon: CupertinoIcons.trash,
-            semanticLabel: 'Remove slideshow',
-            onPressed: _clearSlides,
-          ),
-      ],
       child: AnimatedSwitcher(
         duration: AppMotion.slow,
         switchInCurve: AppMotion.enter,
@@ -160,7 +197,6 @@ class _CreateScreenState extends State<CreateScreen> {
   }
 
   Widget _buildSlideshow(BuildContext context) {
-    final theme = Theme.of(context);
     final count = _slides.length;
     final bottomInset = MediaQuery.paddingOf(context).bottom;
 
@@ -169,40 +205,19 @@ class _CreateScreenState extends State<CreateScreen> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
           child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '$count ${count == 1 ? 'slide' : 'slides'} ready',
-                      style: theme.textTheme.headlineSmall,
-                    ),
-                    const SizedBox(height: 5),
-                    Row(
-                      children: [
-                        const Icon(
-                          CupertinoIcons.checkmark_seal_fill,
-                          size: 14,
-                          color: AppColors.accentBright,
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          'Posting order preserved',
-                          style: theme.textTheme.bodyMedium,
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
+              GlassIconButton(
+                icon: CupertinoIcons.trash,
+                semanticLabel: 'Delete current slide',
+                onPressed: _deleteCurrentSlide,
               ),
-              const SizedBox(width: 12),
-              GhostButton(
-                label: 'Replace',
+              GlassIconButton(
                 icon: CupertinoIcons.arrow_2_squarepath,
-                onPressed: _isPicking ? null : _pickSlides,
+                semanticLabel: 'Replace current slide',
+                onPressed: _isPicking ? null : _replaceCurrentSlide,
               ),
             ],
           ),
