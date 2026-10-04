@@ -1,3 +1,5 @@
+firebase-functions>=0.6.0
+firebase-admin>=7.7.0
 google-genai>=1.40.0
 openai>=1.80.0
 pydantic>=2.10.0

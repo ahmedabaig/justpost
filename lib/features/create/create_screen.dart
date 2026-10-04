@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:math' as math;
 import 'dart:ui';
 
 import 'package:flutter/cupertino.dart';
@@ -11,6 +12,8 @@ import '../../theme/app_theme.dart';
 import '../../widgets/app_screen.dart';
 import '../../widgets/buttons.dart';
 import '../../widgets/pressable.dart';
+import 'variation_result_screen.dart';
+import 'variation_service.dart';
 
 class CreateScreen extends StatefulWidget {
   const CreateScreen({super.key, required this.uploadRequests});
@@ -26,13 +29,19 @@ class _CreateScreenState extends State<CreateScreen> {
   static const double _thumbGap = 10;
   static const double _stripHeight = 78;
 
+  // Re-encoding to JPEG avoids HEIC, which the variation backend cannot read.
+  static const double _maxSlideWidth = 2048;
+  static const int _slideQuality = 90;
+
   final ImagePicker _picker = ImagePicker();
   final PageController _pageController = PageController();
   final ScrollController _stripController = ScrollController();
+  late final VariationService _variationService = VariationService();
 
   List<XFile> _slides = const [];
   int _currentSlide = 0;
   bool _isPicking = false;
+  int? _uploadedCount;
 
   @override
   void initState() {
@@ -64,7 +73,10 @@ class _CreateScreenState extends State<CreateScreen> {
     setState(() => _isPicking = true);
 
     try {
-      final slides = await _picker.pickMultiImage();
+      final slides = await _picker.pickMultiImage(
+        maxWidth: _maxSlideWidth,
+        imageQuality: _slideQuality,
+      );
       if (!mounted || slides.isEmpty) return;
 
       setState(() {
@@ -122,7 +134,11 @@ class _CreateScreenState extends State<CreateScreen> {
     setState(() => _isPicking = true);
 
     try {
-      final replacement = await _picker.pickImage(source: ImageSource.gallery);
+      final replacement = await _picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: _maxSlideWidth,
+        imageQuality: _slideQuality,
+      );
       if (!mounted || replacement == null || index >= _slides.length) return;
 
       final nextSlides = List<XFile>.of(_slides);
@@ -142,6 +158,45 @@ class _CreateScreenState extends State<CreateScreen> {
       );
     } finally {
       if (mounted) setState(() => _isPicking = false);
+    }
+  }
+
+  Future<void> _generateVariation() async {
+    if (_uploadedCount != null || _slides.isEmpty) return;
+    final originals = List<XFile>.of(_slides);
+    HapticFeedback.mediumImpact();
+    setState(() => _uploadedCount = 0);
+
+    try {
+      final jobId = await _variationService.upload(
+        originals,
+        onProgress: (uploaded, _) {
+          if (mounted) setState(() => _uploadedCount = uploaded);
+        },
+      );
+      if (!mounted) return;
+      await Navigator.of(context).push(
+        CupertinoPageRoute<void>(
+          builder: (_) => VariationResultScreen(
+            jobId: jobId,
+            originals: originals,
+            service: _variationService,
+          ),
+        ),
+      );
+    } catch (error, stackTrace) {
+      debugPrint('JustPost: uploading slides failed — $error\n$stackTrace');
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'We could not upload your slides. Check your connection and try '
+            'again.',
+          ),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _uploadedCount = null);
     }
   }
 
@@ -239,6 +294,21 @@ class _CreateScreenState extends State<CreateScreen> {
               selected: index == _currentSlide,
               onTap: () => _selectSlide(index),
             ),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(24, 14, 24, 0),
+          child: PrimaryButton(
+            key: const Key('generate-variation'),
+            label: switch (_uploadedCount) {
+              null => 'Generate variation',
+              final uploaded =>
+                'Uploading ${math.min(uploaded + 1, count)} of $count…',
+            },
+            icon: CupertinoIcons.sparkles,
+            onPressed: _uploadedCount == null && !_isPicking
+                ? _generateVariation
+                : null,
           ),
         ),
         SizedBox(height: bottomInset + 6),

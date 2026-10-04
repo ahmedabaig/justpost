@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
+from collections.abc import Callable
 from pathlib import Path
 
 from google import genai
@@ -95,21 +96,26 @@ def run_carousel(
     image_paths: list[Path],
     output_root: Path,
     ocr_texts: list[str] | None = None,
+    on_analyzed: Callable[[SlideshowAnalysis], None] | None = None,
+    on_slide: Callable[[dict], None] | None = None,
 ) -> tuple[SlideshowAnalysis, list[dict]]:
     """One analysis call for the carousel, then per-slide filtered edits."""
     analysis = analyze_slideshow(client, image_paths, ocr_texts=ocr_texts)
     output_root.mkdir(parents=True, exist_ok=True)
     (output_root / "_analysis.json").write_text(analysis.model_dump_json(indent=2))
+    if on_analyzed is not None:
+        on_analyzed(analysis)
     by_id = {slide.slide_id: slide for slide in analysis.slides}
     results = []
     for path in image_paths:
         graph = by_id[path.stem]
-        results.append(
-            run_slide(
-                path,
-                output_root / path.stem,
-                graph=graph,
-                analysis=analysis,
-            )
+        result = run_slide(
+            path,
+            output_root / path.stem,
+            graph=graph,
+            analysis=analysis,
         )
+        results.append(result)
+        if on_slide is not None:
+            on_slide(result)
     return analysis, results

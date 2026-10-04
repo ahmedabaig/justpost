@@ -9,7 +9,10 @@ The repository currently contains:
 
 - A minimal Flutter application scaffold for future iOS and Android clients.
 - Firebase initialization and platform configuration.
-- A Python validation pipeline under `phase1/`.
+- The Python variation pipeline (`functions/justpost_phase1/`), deployed as the
+  `create_variation` Cloud Function.
+- A local batch runner under `phase1/` for testing the pipeline on your own
+  slideshows.
 
 ## Current image pipeline
 
@@ -39,7 +42,7 @@ Then install the Python dependencies and run a slideshow:
 cd phase1
 python3 -m venv .venv
 source .venv/bin/activate
-pip install -r requirements.txt
+pip install -r ../functions/requirements.txt
 python run_batch.py ex1
 ```
 
@@ -48,17 +51,59 @@ Omit `ex1` to process every slideshow under `phase1/slideshows/`.
 `OPENAI_IMAGE_MODEL` is optional and can be set in `phase1/.env` to override
 the pipeline's default image model.
 
+## Cloud Function
+
+The app uploads slides to Storage under `jobs/{uid}/{jobId}/input/`, then calls
+`create_variation`. The function runs the pipeline, uploads each shipped slide
+to `jobs/{uid}/{jobId}/output/`, and reports progress in the Firestore document
+`jobs/{jobId}`, which the app watches.
+
+One-time setup for the `justpost-baig` project:
+
+1. Upgrade to the Blaze plan and enable Storage and Anonymous sign-in.
+2. Store the API keys in Secret Manager (paste each key when prompted):
+
+   ```bash
+   firebase functions:secrets:set OPENAI_API_KEY
+   firebase functions:secrets:set GEMINI_API_KEY
+   ```
+
+3. Register the iOS app with App Check using App Attest, and add the
+   simulator's debug token under App Check > Manage debug tokens.
+
+Never put API keys in `functions/.env`; Firebase deploys that file as plain
+environment variables.
+
+Run the backend tests and deploy:
+
+```bash
+cd functions
+python3.12 -m venv venv
+./venv/bin/pip install -r requirements.txt pytest
+./venv/bin/python -m pytest -q
+cd ..
+firebase deploy --only functions,firestore,storage
+```
+
 ## Run the Flutter app
 
 ```bash
 flutter pub get
-flutter run
+flutter run --dart-define=APP_CHECK_DEBUG_TOKEN=<token>
 ```
+
+`APP_CHECK_DEBUG_TOKEN` is optional. Without it, the first debug run prints a
+token in the logs that you register in the Firebase console. Release builds use
+App Attest instead.
+
+To ship a TestFlight build, increase the build number in `pubspec.yaml`, run
+`flutter build ipa`, and upload `build/ios/ipa/*.ipa` with Transporter.
 
 The Flutter app initializes Firebase and presents a dark-themed shell with
 three tabs — Create, Library, and You — behind a floating glass navigation
-pill. Create can pick a slideshow from the photo library and review it slide by
-slide. Pipeline integration has not yet been implemented.
+pill. Create can pick a slideshow from the photo library, review it slide by
+slide, and send it to the Cloud Function with Generate variation, which shows
+each result beside its original.
 
 UI code is organized as `lib/theme` (design tokens and `ThemeData`),
 `lib/shell` (the layout shell and navigation), `lib/widgets` (shared

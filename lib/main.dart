@@ -1,4 +1,6 @@
+import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -11,7 +13,24 @@ Future<void> main() async {
   // The shell draws its own background behind the status and navigation bars.
   await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  await _activateAppCheck();
   runApp(const JustPostApp());
+}
+
+/// Debug builds use a debug token registered in the Firebase console;
+/// release builds (TestFlight and the App Store) use App Attest.
+Future<void> _activateAppCheck() {
+  const debugToken = String.fromEnvironment('APP_CHECK_DEBUG_TOKEN');
+  return FirebaseAppCheck.instance.activate(
+    providerApple: kDebugMode
+        ? AppleDebugProvider(debugToken: debugToken.isEmpty ? null : debugToken)
+        : const AppleAppAttestProvider(),
+    providerAndroid: kDebugMode
+        ? AndroidDebugProvider(
+            debugToken: debugToken.isEmpty ? null : debugToken,
+          )
+        : const AndroidPlayIntegrityProvider(),
+  );
 }
 
 class JustPostApp extends StatelessWidget {

@@ -12,7 +12,7 @@ from google import genai
 
 ROOT = Path(__file__).resolve().parent
 load_dotenv(ROOT / ".env")
-sys.path.insert(0, str(ROOT))
+sys.path.insert(0, str(ROOT.parent / "functions"))
 
 from justpost_phase1.pipeline import discover_slides, group_carousels, run_carousel
 

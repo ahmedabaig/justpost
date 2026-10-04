@@ -55,3 +55,11 @@ phase1/slideshows/*
 !phase1/slideshows/.gitkeep
 __pycache__/
 *.egg-info/
+
+# Cloud Functions
+functions/venv/
+functions/.env*
+functions/.secret.local
+.firebase/
+firebase-debug.log
+firestore-debug.log
