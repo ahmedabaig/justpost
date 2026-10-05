@@ -50,19 +50,18 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyCnNpCUtzroZLWHZ6ZKAcXXXWLMNgxOO_c',
-    appId: '1:502520757255:android:36ab800f49aee8803c3ea2',
-    messagingSenderId: '502520757255',
-    projectId: 'justpost-baig',
-    storageBucket: 'justpost-baig.firebasestorage.app',
+    apiKey: 'AIzaSyD177B1hA6pyvGr5ZOkkz1fYIzi9Bb9TF4',
+    appId: '1:760581567005:android:dc6b55dd4801b01d7e0cf4',
+    messagingSenderId: '760581567005',
+    projectId: 'justpost-mobile',
+    storageBucket: 'justpost-mobile.firebasestorage.app',
   );
-
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyBnp91KZO2u3RrdT_GahNSKXVfIIwW0Zso',
-    appId: '1:502520757255:ios:2cf2d31923950c063c3ea2',
-    messagingSenderId: '502520757255',
-    projectId: 'justpost-baig',
-    storageBucket: 'justpost-baig.firebasestorage.app',
+    apiKey: 'AIzaSyCPAXNgK-1txaiXEvy0RnaMd-qDaKIvQDk',
+    appId: '1:760581567005:ios:243d49ef23e4d2477e0cf4',
+    messagingSenderId: '760581567005',
+    projectId: 'justpost-mobile',
+    storageBucket: 'justpost-mobile.firebasestorage.app',
     iosBundleId: 'com.justpost.justPost',
   );
 }

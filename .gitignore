@@ -47,19 +47,16 @@ app.*.map.json
 # Widget Preview related
 .widget_preview/
 
-# Phase 1 pipeline validation
-phase1/.venv/
-phase1/.env
-phase1/outputs/
-phase1/slideshows/*
-!phase1/slideshows/.gitkeep
-__pycache__/
-*.egg-info/
+# Secrets
+.env
+**/.env
 
 # Cloud Functions
 functions/venv/
 functions/.env*
 functions/.secret.local
+__pycache__/
+.pytest_cache/
 .firebase/
 firebase-debug.log
 firestore-debug.log

@@ -2,17 +2,16 @@ rules_version = '2';
 
 service firebase.storage {
   match /b/{bucket}/o {
-    match /jobs/{uid}/{jobId}/input/{fileName} {
+    match /uploads/{uid}/{assetId}/{fileName} {
       allow read: if request.auth != null && request.auth.uid == uid;
+
+      // Only the original may come from the app; derived copies are written
+      // by the ingest_asset function.
       allow create: if request.auth != null
         && request.auth.uid == uid
-        && request.resource.size < 15 * 1024 * 1024
-        && request.resource.contentType.matches('image/(jpeg|png|webp)');
-    }
-
-    // Outputs are written only by the create_variation function.
-    match /jobs/{uid}/{jobId}/output/{fileName} {
-      allow read: if request.auth != null && request.auth.uid == uid;
+        && fileName.matches('original\\.(jpg|jpeg|png|webp|heic|heif)')
+        && request.resource.size < 20 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
     }
 
     match /{allPaths=**} {

@@ -2,12 +2,33 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Job documents are written only by the create_variation function.
-    match /jobs/{jobId} {
-      // resource == null lets the app watch a job before the function creates it.
+    // Asset records are written only by Cloud Functions.
+    match /assets/{assetId} {
+      // resource == null lets the app read an asset before it has been ingested.
       allow read: if request.auth != null
         && (resource == null || resource.data.uid == request.auth.uid);
       allow write: if false;
+
+      // Analysis and blueprint runs keep raw model output for inspection;
+      // owner read only.
+      match /analysisRuns/{runId} {
+        allow read: if request.auth != null
+          && get(/databases/$(database)/documents/assets/$(assetId)).data.uid
+            == request.auth.uid;
+        allow write: if false;
+      }
+
+      match /blueprintRuns/{runId} {
+        allow read: if request.auth != null
+          && get(/databases/$(database)/documents/assets/$(assetId)).data.uid
+            == request.auth.uid;
+        allow write: if false;
+      }
+    }
+
+    // Daily usage counters are kept by analyze_asset.
+    match /usage/{uid} {
+      allow read, write: if false;
     }
 
     match /{document=**} {

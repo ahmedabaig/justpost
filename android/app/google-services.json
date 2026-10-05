@@ -1,13 +1,13 @@
 {
   "project_info": {
-    "project_number": "502520757255",
-    "project_id": "justpost-baig",
-    "storage_bucket": "justpost-baig.firebasestorage.app"
+    "project_number": "760581567005",
+    "project_id": "justpost-mobile",
+    "storage_bucket": "justpost-mobile.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:502520757255:android:36ab800f49aee8803c3ea2",
+        "mobilesdk_app_id": "1:760581567005:android:dc6b55dd4801b01d7e0cf4",
         "android_client_info": {
           "package_name": "com.justpost.just_post"
         }
@@ -15,7 +15,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyCnNpCUtzroZLWHZ6ZKAcXXXWLMNgxOO_c"
+          "current_key": "AIzaSyD177B1hA6pyvGr5ZOkkz1fYIzi9Bb9TF4"
         }
       ],
       "services": {

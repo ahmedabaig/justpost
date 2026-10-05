@@ -3,17 +3,17 @@
 <plist version="1.0">
 <dict>
 	<key>API_KEY</key>
-	<string>AIzaSyBnp91KZO2u3RrdT_GahNSKXVfIIwW0Zso</string>
+	<string>AIzaSyCPAXNgK-1txaiXEvy0RnaMd-qDaKIvQDk</string>
 	<key>GCM_SENDER_ID</key>
-	<string>502520757255</string>
+	<string>760581567005</string>
 	<key>PLIST_VERSION</key>
 	<string>1</string>
 	<key>BUNDLE_ID</key>
 	<string>com.justpost.justPost</string>
 	<key>PROJECT_ID</key>
-	<string>justpost-baig</string>
+	<string>justpost-mobile</string>
 	<key>STORAGE_BUCKET</key>
-	<string>justpost-baig.firebasestorage.app</string>
+	<string>justpost-mobile.firebasestorage.app</string>
 	<key>IS_ADS_ENABLED</key>
 	<false></false>
 	<key>IS_ANALYTICS_ENABLED</key>
@@ -25,6 +25,6 @@
 	<key>IS_SIGNIN_ENABLED</key>
 	<true></true>
 	<key>GOOGLE_APP_ID</key>
-	<string>1:502520757255:ios:2cf2d31923950c063c3ea2</string>
+	<string>1:760581567005:ios:243d49ef23e4d2477e0cf4</string>
 </dict>
 </plist>

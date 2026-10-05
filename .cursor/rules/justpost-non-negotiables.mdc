@@ -10,14 +10,10 @@ alwaysApply: true
 - Preserve mobile app scaffolding, platform projects, and relevant service configuration unless replacement or removal is explicitly requested.
 - During cleanup, classify future mobile-app code separately from dead or irrelevant code.
 
-## Untrusted AI output
-- Treat every AI analysis, graph, permission value, and edit instruction as untrusted input.
-- Derive effective edit permissions from trusted application policy; never trust permissions emitted by a model or supplied in JSON.
-- Check every proposed edit against the permission filter before dispatch. Never bypass or weaken this boundary.
-
-## Generated-image verification
-- Verify protected and locked regions against the original before accepting a generated image.
-- If verification fails or the result is uncertain, return the unedited original. Never ship a guess.
+## AI output
+- Treat model output as untrusted data: validate it against a schema and app policy before acting on it. Never let model output decide permissions, security, or cost limits.
+- Never return a generated result that hasn't passed validation. If validation fails or is uncertain, retry or drop it; don't ship a guess.
+- Exception for inspection: raw model output may be shown in debug and TestFlight builds only, clearly labelled as unchecked, and only when the server's inspection switch is on. It is never stored as, or passed downstream as, a result.
 
 ## Layout data
 - Store element positions and sizes as fractional 0–1 coordinates, not absolute pixels.

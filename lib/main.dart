@@ -17,18 +17,19 @@ Future<void> main() async {
   runApp(const JustPostApp());
 }
 
-/// Debug builds use a debug token registered in the Firebase console;
-/// release builds (TestFlight and the App Store) use App Attest.
+/// Debug builds use a debug token that must be registered in the Firebase
+/// console (App Check → Manage debug tokens). Pass a fixed one with
+/// `--dart-define=APP_CHECK_DEBUG_TOKEN=...`, or leave it empty and copy the
+/// generated token from the run log.
 Future<void> _activateAppCheck() {
   const debugToken = String.fromEnvironment('APP_CHECK_DEBUG_TOKEN');
+  final token = debugToken.isEmpty ? null : debugToken;
   return FirebaseAppCheck.instance.activate(
     providerApple: kDebugMode
-        ? AppleDebugProvider(debugToken: debugToken.isEmpty ? null : debugToken)
+        ? AppleDebugProvider(debugToken: token)
         : const AppleAppAttestProvider(),
     providerAndroid: kDebugMode
-        ? AndroidDebugProvider(
-            debugToken: debugToken.isEmpty ? null : debugToken,
-          )
+        ? AndroidDebugProvider(debugToken: token)
         : const AndroidPlayIntegrityProvider(),
   );
 }

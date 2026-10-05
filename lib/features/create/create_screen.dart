@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:math' as math;
 import 'dart:ui';
 
 import 'package:flutter/cupertino.dart';
@@ -12,8 +11,8 @@ import '../../theme/app_theme.dart';
 import '../../widgets/app_screen.dart';
 import '../../widgets/buttons.dart';
 import '../../widgets/pressable.dart';
-import 'variation_result_screen.dart';
-import 'variation_service.dart';
+import 'asset_service.dart';
+import 'reference_ready_screen.dart';
 
 class CreateScreen extends StatefulWidget {
   const CreateScreen({super.key, required this.uploadRequests});
@@ -29,19 +28,15 @@ class _CreateScreenState extends State<CreateScreen> {
   static const double _thumbGap = 10;
   static const double _stripHeight = 78;
 
-  // Re-encoding to JPEG avoids HEIC, which the variation backend cannot read.
-  static const double _maxSlideWidth = 2048;
-  static const int _slideQuality = 90;
-
   final ImagePicker _picker = ImagePicker();
   final PageController _pageController = PageController();
   final ScrollController _stripController = ScrollController();
-  late final VariationService _variationService = VariationService();
+  final AssetService _assetService = AssetService();
 
   List<XFile> _slides = const [];
   int _currentSlide = 0;
   bool _isPicking = false;
-  int? _uploadedCount;
+  bool _isIngesting = false;
 
   @override
   void initState() {
@@ -73,10 +68,7 @@ class _CreateScreenState extends State<CreateScreen> {
     setState(() => _isPicking = true);
 
     try {
-      final slides = await _picker.pickMultiImage(
-        maxWidth: _maxSlideWidth,
-        imageQuality: _slideQuality,
-      );
+      final slides = await _picker.pickMultiImage();
       if (!mounted || slides.isEmpty) return;
 
       setState(() {
@@ -127,77 +119,47 @@ class _CreateScreenState extends State<CreateScreen> {
     }
   }
 
-  Future<void> _replaceCurrentSlide() async {
-    if (_isPicking || _slides.isEmpty) return;
+  void _exitSlideshow() {
+    if (_slides.isEmpty) return;
+    HapticFeedback.selectionClick();
+    setState(() {
+      _slides = const [];
+      _currentSlide = 0;
+    });
+  }
 
-    final index = _currentSlide;
-    setState(() => _isPicking = true);
+  Future<void> _useCurrentSlideAsReference() async {
+    if (_isIngesting || _slides.isEmpty) return;
+    final slide = _slides[_currentSlide];
+    setState(() => _isIngesting = true);
 
     try {
-      final replacement = await _picker.pickImage(
-        source: ImageSource.gallery,
-        maxWidth: _maxSlideWidth,
-        imageQuality: _slideQuality,
-      );
-      if (!mounted || replacement == null || index >= _slides.length) return;
-
-      final nextSlides = List<XFile>.of(_slides);
-      nextSlides[index] = replacement;
-      setState(() => _slides = nextSlides);
-      HapticFeedback.lightImpact();
-    } catch (error, stackTrace) {
-      debugPrint('JustPost: replacing slide failed — $error\n$stackTrace');
+      final asset = await _assetService.ingestReference(slide);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'We could not replace this slide. Check photo access in Settings '
-            'and try again.',
+      HapticFeedback.mediumImpact();
+      await Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (_) => ReferenceReadyScreen(
+            asset: asset,
+            original: slide,
+            service: _assetService,
           ),
         ),
       );
+    } on AssetIngestException catch (error) {
+      _showError(error.message);
+    } catch (error) {
+      debugPrint('JustPost: reference ingest failed — ${error.runtimeType}');
+      _showError('Something went wrong. Please try again.');
     } finally {
-      if (mounted) setState(() => _isPicking = false);
+      if (mounted) setState(() => _isIngesting = false);
     }
   }
 
-  Future<void> _generateVariation() async {
-    if (_uploadedCount != null || _slides.isEmpty) return;
-    final originals = List<XFile>.of(_slides);
-    HapticFeedback.mediumImpact();
-    setState(() => _uploadedCount = 0);
-
-    try {
-      final jobId = await _variationService.upload(
-        originals,
-        onProgress: (uploaded, _) {
-          if (mounted) setState(() => _uploadedCount = uploaded);
-        },
-      );
-      if (!mounted) return;
-      await Navigator.of(context).push(
-        CupertinoPageRoute<void>(
-          builder: (_) => VariationResultScreen(
-            jobId: jobId,
-            originals: originals,
-            service: _variationService,
-          ),
-        ),
-      );
-    } catch (error, stackTrace) {
-      debugPrint('JustPost: uploading slides failed — $error\n$stackTrace');
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'We could not upload your slides. Check your connection and try '
-            'again.',
-          ),
-        ),
-      );
-    } finally {
-      if (mounted) setState(() => _uploadedCount = null);
-    }
+  void _showError(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
   }
 
   void _selectSlide(int index) {
@@ -265,14 +227,16 @@ class _CreateScreenState extends State<CreateScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               GlassIconButton(
+                key: const Key('exit-slideshow-button'),
+                icon: CupertinoIcons.xmark,
+                semanticLabel: 'Close slides',
+                onPressed: _isIngesting ? null : _exitSlideshow,
+              ),
+              GlassIconButton(
+                key: const Key('delete-slide-button'),
                 icon: CupertinoIcons.trash,
                 semanticLabel: 'Delete current slide',
                 onPressed: _deleteCurrentSlide,
-              ),
-              GlassIconButton(
-                icon: CupertinoIcons.arrow_2_squarepath,
-                semanticLabel: 'Replace current slide',
-                onPressed: _isPicking ? null : _replaceCurrentSlide,
               ),
             ],
           ),
@@ -296,19 +260,15 @@ class _CreateScreenState extends State<CreateScreen> {
             ),
           ),
         ),
+        const SizedBox(height: 10),
         Padding(
-          padding: const EdgeInsets.fromLTRB(24, 14, 24, 0),
+          padding: const EdgeInsets.symmetric(horizontal: 24),
           child: PrimaryButton(
-            key: const Key('generate-variation'),
-            label: switch (_uploadedCount) {
-              null => 'Generate variation',
-              final uploaded =>
-                'Uploading ${math.min(uploaded + 1, count)} of $count…',
-            },
+            key: const Key('create-button'),
+            label: 'Create',
             icon: CupertinoIcons.sparkles,
-            onPressed: _uploadedCount == null && !_isPicking
-                ? _generateVariation
-                : null,
+            busy: _isIngesting,
+            onPressed: _isPicking ? null : _useCurrentSlideAsReference,
           ),
         ),
         SizedBox(height: bottomInset + 6),

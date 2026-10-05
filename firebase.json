@@ -3,25 +3,25 @@
     "platforms": {
       "android": {
         "default": {
-          "projectId": "justpost-baig",
-          "appId": "1:502520757255:android:36ab800f49aee8803c3ea2",
+          "projectId": "justpost-mobile",
+          "appId": "1:760581567005:android:dc6b55dd4801b01d7e0cf4",
           "fileOutput": "android/app/google-services.json"
         }
       },
       "ios": {
         "default": {
-          "projectId": "justpost-baig",
-          "appId": "1:502520757255:ios:2cf2d31923950c063c3ea2",
+          "projectId": "justpost-mobile",
+          "appId": "1:760581567005:ios:243d49ef23e4d2477e0cf4",
           "uploadDebugSymbols": false,
           "fileOutput": "ios/Runner/GoogleService-Info.plist"
         }
       },
       "dart": {
         "lib/firebase_options.dart": {
-          "projectId": "justpost-baig",
+          "projectId": "justpost-mobile",
           "configurations": {
-            "android": "1:502520757255:android:36ab800f49aee8803c3ea2",
-            "ios": "1:502520757255:ios:2cf2d31923950c063c3ea2"
+            "android": "1:760581567005:android:dc6b55dd4801b01d7e0cf4",
+            "ios": "1:760581567005:ios:243d49ef23e4d2477e0cf4"
           }
         }
       }
@@ -36,12 +36,14 @@
         "venv",
         ".git",
         "__pycache__",
+        ".pytest_cache",
         "**/test_*.py",
         ".env*"
       ]
     }
   ],
   "firestore": {
+    "database": "(default)",
     "rules": "firestore.rules",
     "indexes": "firestore.indexes.json"
   },
