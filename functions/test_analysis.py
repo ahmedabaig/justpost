@@ -69,10 +69,14 @@ class ScriptedModel:
         self.replies = list(replies)
         self.instructions: list[str] = []
         self.user_texts: list[str] = []
+        self.images: list[tuple[bytes, ...]] = []
 
-    def respond(self, instructions: str, user_text: str, image_webp: bytes) -> ModelReply:
+    def respond(
+        self, instructions: str, user_text: str, image_webp: bytes, extra_images=()
+    ) -> ModelReply:
         self.instructions.append(instructions)
         self.user_texts.append(user_text)
+        self.images.append((image_webp, *extra_images))
         reply = self.replies.pop(0)
         if isinstance(reply, Exception):
             raise reply

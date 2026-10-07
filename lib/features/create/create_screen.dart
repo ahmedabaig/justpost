@@ -12,6 +12,7 @@ import '../../widgets/app_screen.dart';
 import '../../widgets/buttons.dart';
 import '../../widgets/pressable.dart';
 import 'asset_service.dart';
+import 'create_steps.dart';
 import 'reference_ready_screen.dart';
 
 class CreateScreen extends StatefulWidget {
@@ -138,8 +139,8 @@ class _CreateScreenState extends State<CreateScreen> {
       if (!mounted) return;
       HapticFeedback.mediumImpact();
       await Navigator.of(context).push(
-        MaterialPageRoute<void>(
-          builder: (_) => ReferenceReadyScreen(
+        CreateStep.reference.route<void>(
+          (_) => ReferenceReadyScreen(
             asset: asset,
             original: slide,
             service: _assetService,

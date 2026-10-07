@@ -14,6 +14,18 @@ service firebase.storage {
         && request.resource.contentType.matches('image/.*');
     }
 
+    // Generated variations are written only by generate_variation, and slides
+    // only by render_slide. Files can be fetched but not listed, so the app
+    // can open only the paths the server handed out: passed images, plus the
+    // others when the server's inspection switch is on.
+    match /uploads/{uid}/{assetId}/variations/{fileName} {
+      allow get: if request.auth != null && request.auth.uid == uid;
+    }
+
+    match /uploads/{uid}/{assetId}/slides/{fileName} {
+      allow get: if request.auth != null && request.auth.uid == uid;
+    }
+
     match /{allPaths=**} {
       allow read, write: if false;
     }

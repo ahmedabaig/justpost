@@ -131,11 +131,11 @@ def path_exists(data: Any, path: str) -> bool:
     return True
 
 
-def _words(text: str) -> frozenset[str]:
+def word_set(text: str) -> frozenset[str]:
     return frozenset(re.findall(r"[a-z0-9]+", text.lower())) - _STOPWORDS
 
 
-def _similar(a: frozenset[str], b: frozenset[str]) -> bool:
+def similar(a: frozenset[str], b: frozenset[str]) -> bool:
     if not a or not b:
         return a == b
     return len(a & b) / len(a | b) >= NEAR_DUPLICATE
@@ -189,9 +189,9 @@ def check_blueprint(
                 if not path_exists(analysis, path):
                     issues.append(f"{where}.basis: '{path}' is not in the analysis")
 
-            words = _words(_item_text(item))
+            words = word_set(_item_text(item))
             for other_where, other_words in seen_texts:
-                if _similar(words, other_words):
+                if similar(words, other_words):
                     issues.append(f"{where}: repeats {other_where}")
                     break
             seen_texts.append((where, words))

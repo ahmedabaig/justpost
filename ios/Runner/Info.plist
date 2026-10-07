@@ -28,6 +28,8 @@
 	<false/>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Save your finished slides to your photo library.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Choose the slideshow images you want JustPost to vary.</string>
 	<key>UIApplicationSceneManifest</key>

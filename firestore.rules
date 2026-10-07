@@ -2,35 +2,9 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Asset records are written only by Cloud Functions.
-    match /assets/{assetId} {
-      // resource == null lets the app read an asset before it has been ingested.
-      allow read: if request.auth != null
-        && (resource == null || resource.data.uid == request.auth.uid);
-      allow write: if false;
-
-      // Analysis and blueprint runs keep raw model output for inspection;
-      // owner read only.
-      match /analysisRuns/{runId} {
-        allow read: if request.auth != null
-          && get(/databases/$(database)/documents/assets/$(assetId)).data.uid
-            == request.auth.uid;
-        allow write: if false;
-      }
-
-      match /blueprintRuns/{runId} {
-        allow read: if request.auth != null
-          && get(/databases/$(database)/documents/assets/$(assetId)).data.uid
-            == request.auth.uid;
-        allow write: if false;
-      }
-    }
-
-    // Daily usage counters are kept by analyze_asset.
-    match /usage/{uid} {
-      allow read, write: if false;
-    }
-
+    // The app reads everything through Cloud Functions, which filter out raw
+    // model output and images that didn't pass their checks. Assets and their
+    // run records are written and read only by the server.
     match /{document=**} {
       allow read, write: if false;
     }

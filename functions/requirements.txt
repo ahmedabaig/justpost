@@ -4,3 +4,4 @@ pillow>=11.0.0
 pillow-heif>=1.0.0
 openai>=3.24.0
 pydantic>=2.13.0
+fonttools>=4.60.0

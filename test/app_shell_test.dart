@@ -5,10 +5,15 @@ import 'package:just_post/shell/app_shell.dart';
 import 'package:just_post/shell/floating_nav_bar.dart';
 import 'package:just_post/theme/app_theme.dart';
 
+import 'slideshow_service_test.dart';
+
 void main() {
   Future<void> pumpShell(WidgetTester tester) async {
     await tester.pumpWidget(
-      MaterialApp(theme: buildJustPostTheme(), home: const AppShell()),
+      MaterialApp(
+        theme: buildJustPostTheme(),
+        home: AppShell(slideshowService: FakeSlideshowService()),
+      ),
     );
     await tester.pumpAndSettle();
   }

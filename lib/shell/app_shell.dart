@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 
 import '../features/create/create_screen.dart';
 import '../features/library/library_screen.dart';
+import '../features/library/slideshow_service.dart';
 import '../features/profile/profile_screen.dart';
 import '../theme/app_theme.dart';
 import '../widgets/ambient_background.dart';
@@ -13,16 +14,21 @@ import 'floating_nav_bar.dart';
 /// Root layout: one surface, three long-lived pages, and a floating navigation
 /// pill layered over them.
 class AppShell extends StatefulWidget {
-  const AppShell({super.key});
+  const AppShell({super.key, this.slideshowService});
+
+  /// Defaults to the Cloud Functions one; tests pass a fake.
+  final SlideshowService? slideshowService;
 
   @override
   State<AppShell> createState() => _AppShellState();
 }
 
 class _AppShellState extends State<AppShell> {
+  static const int _libraryIndex = 0;
   static const int _createIndex = 1;
 
   final ValueNotifier<int> _uploadRequests = ValueNotifier(0);
+  final ValueNotifier<int> _libraryRequests = ValueNotifier(0);
   int _selectedIndex = _createIndex;
 
   void _select(int index) {
@@ -38,11 +44,13 @@ class _AppShellState extends State<AppShell> {
     if (index == _selectedIndex) return;
     HapticFeedback.selectionClick();
     setState(() => _selectedIndex = index);
+    if (index == _libraryIndex) _libraryRequests.value++;
   }
 
   @override
   void dispose() {
     _uploadRequests.dispose();
+    _libraryRequests.dispose();
     super.dispose();
   }
 
@@ -77,7 +85,10 @@ class _AppShellState extends State<AppShell> {
                 child: _FadeThroughStack(
                   index: _selectedIndex,
                   children: [
-                    const LibraryScreen(),
+                    LibraryScreen(
+                      service: widget.slideshowService,
+                      refreshRequests: _libraryRequests,
+                    ),
                     CreateScreen(uploadRequests: _uploadRequests),
                     const ProfileScreen(),
                   ],

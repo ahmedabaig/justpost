@@ -12,15 +12,16 @@ it as the **confirmed plans**. Only the confirmed plans will feed Phase 5
 
 ## Build checklist
 
-- [ ] Plan core: `functions/justpost/plan_schema.py` and
+- [x] Plan core: `functions/justpost/plan_schema.py` and
       `functions/justpost/planning.py` with `test_planning.py`
-- [ ] Functions: `plan_variations` and `save_plans` in `functions/main.py`,
-      with a `plans` daily limit, and tests in `test_main.py`
-- [ ] Firestore rules: the owner can read `planRuns`; then deploy
-- [ ] App: `plan_service.dart`, `plan_editor.dart`, `plans_screen.dart`, and a
+- [x] Functions: `plan_variations` and `save_plans` in `functions/main.py`,
+      with a `plans` daily limit, and tests in `test_main.py` (deployed)
+- [x] Firestore rules: the owner can read `planRuns` (deployed)
+- [x] App: `plan_service.dart`, `plan_editor.dart`, `plans_screen.dart`, and a
       **Plan variations** button with a 1–5 count picker on the Blueprint
       screen, with `plan_editor_test.dart` and `plan_service_test.dart`
-- [ ] Verify, deploy the functions, and tick this checklist
+- [x] Verify, deploy the functions, and tick this checklist
+- [ ] Simulator and TestFlight checks
 
 ## Decisions
 

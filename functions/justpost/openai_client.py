@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import base64
+from collections.abc import Sequence
 
 import openai
 
@@ -21,8 +22,21 @@ class OpenAIVisionModel:
         )
         self._model = model
 
-    def respond(self, instructions: str, user_text: str, image_webp: bytes) -> ModelReply:
-        image_url = "data:image/webp;base64," + base64.b64encode(image_webp).decode()
+    def respond(
+        self,
+        instructions: str,
+        user_text: str,
+        image_webp: bytes,
+        extra_images: Sequence[bytes] = (),
+    ) -> ModelReply:
+        images = [
+            {
+                "type": "input_image",
+                "image_url": "data:image/webp;base64," + base64.b64encode(image).decode(),
+                "detail": "high",
+            }
+            for image in (image_webp, *extra_images)
+        ]
         try:
             response = self._client.responses.create(
                 model=self._model,
@@ -30,10 +44,7 @@ class OpenAIVisionModel:
                 input=[
                     {
                         "role": "user",
-                        "content": [
-                            {"type": "input_text", "text": user_text},
-                            {"type": "input_image", "image_url": image_url, "detail": "high"},
-                        ],
+                        "content": [{"type": "input_text", "text": user_text}, *images],
                     }
                 ],
                 max_output_tokens=MAX_OUTPUT_TOKENS,

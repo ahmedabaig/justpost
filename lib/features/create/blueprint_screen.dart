@@ -9,7 +9,10 @@ import '../../widgets/app_screen.dart';
 import '../../widgets/buttons.dart';
 import 'blueprint_editor.dart';
 import 'blueprint_service.dart';
+import 'create_steps.dart';
 import 'model_run_widgets.dart';
+import 'plan_service.dart';
+import 'plans_screen.dart';
 
 /// Shows a blueprint run, lets the user edit the draft, and saves the edited
 /// version as the confirmed blueprint.
@@ -18,11 +21,17 @@ class BlueprintScreen extends StatefulWidget {
     super.key,
     required this.run,
     required this.service,
+    this.planService,
+    this.referencePath,
     this.showInspection = showAiInspection,
   });
 
   final BlueprintRun run;
   final BlueprintService service;
+  final PlanService? planService;
+
+  /// The slide's analysis copy, passed on to the plans and images.
+  final String? referencePath;
   final bool showInspection;
 
   @override
@@ -33,8 +42,14 @@ class _BlueprintScreenState extends State<BlueprintScreen> {
   late BlueprintRun _run = widget.run;
   late BlueprintEditor? _editor = _editorFor(widget.run);
   late ConfirmedBlueprint? _confirmed = widget.run.confirmed;
+  late final PlanService _planService = widget.planService ?? PlanService();
   bool _saving = false;
   bool _rebuilding = false;
+  bool _planning = false;
+  int _planCount = PlanLimits.minPlans;
+
+  /// A rule was added from an image; once saved, offer to plan again.
+  bool _fixPending = false;
 
   static BlueprintEditor? _editorFor(BlueprintRun run) {
     final draft = run.draft;
@@ -58,6 +73,17 @@ class _BlueprintScreenState extends State<BlueprintScreen> {
         _confirmed = confirmed;
         _editor = editor.markSaved(confirmed.blueprint);
       });
+      if (_fixPending) {
+        _fixPending = false;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text(
+              'Blueprint saved. Plan again so new images follow it.',
+            ),
+            action: SnackBarAction(label: 'Plan again', onPressed: _plan),
+          ),
+        );
+      }
     } on BlueprintException catch (error) {
       _showMessage(error.message);
     } catch (error) {
@@ -97,6 +123,81 @@ class _BlueprintScreenState extends State<BlueprintScreen> {
     }
   }
 
+  /// Why variations can't be planned yet, or null when they can.
+  String? get _planBlocker {
+    final confirmed = _confirmed;
+    final editor = _editor;
+    if (confirmed == null || (editor != null && editor.isDirty)) {
+      return 'Save the blueprint to plan variations.';
+    }
+    if (confirmed.blueprint.analysisRunId != _run.analysisRunId) {
+      return 'Save a blueprint for the current analysis first.';
+    }
+    return null;
+  }
+
+  Future<void> _plan() async {
+    final confirmed = _confirmed;
+    if (_planning || confirmed == null || _planBlocker != null) return;
+    setState(() => _planning = true);
+    try {
+      final run = await _planService.plan(_run.assetId, _planCount);
+      if (!mounted) return;
+      HapticFeedback.mediumImpact();
+      await Navigator.of(context).push(
+        CreateStep.plans.route<void>(
+          (_) => PlansScreen(
+            run: run,
+            blueprint: confirmed.blueprint,
+            service: _planService,
+            referencePath: widget.referencePath,
+            showInspection: widget.showInspection,
+            onFixBlueprint: _fixFromImage,
+          ),
+        ),
+      );
+    } on PlanException catch (error) {
+      _showMessage(error.message);
+    } catch (error) {
+      debugPrint('JustPost: planning failed — ${error.runtimeType}');
+      _showMessage('Something went wrong. Please try again.');
+    } finally {
+      if (mounted) setState(() => _planning = false);
+    }
+  }
+
+  /// Comes back here from an image and asks for a new "Must keep" rule,
+  /// showing the checker's [reasons] if the image didn't pass.
+  Future<void> _fixFromImage(List<String> reasons) async {
+    final route = ModalRoute.of(context);
+    Navigator.of(context).popUntil((r) => r == route || r.isFirst);
+    final editor = _editor;
+    const section = BlueprintSection.mustKeep;
+    if (editor == null) {
+      _showMessage('Rebuild the draft to edit the blueprint.');
+      return;
+    }
+    if (editor.blueprint.items(section).length >= section.maxItems) {
+      _showMessage('"Must keep" is full. Edit one of its items instead.');
+      return;
+    }
+    final text = await showTextEditDialog(
+      context,
+      title: 'Add to "${section.label}"',
+      maxLength: section.maxTextLength,
+      message: [
+        if (reasons.isNotEmpty)
+          'The checker said:\n${reasons.map((r) => '• $r').join('\n')}\n',
+        'Describe what the image got wrong as a rule every image must '
+            'follow. Be specific, for example about the camera angle.',
+      ].join('\n'),
+      hint: 'e.g. Shot from slightly above eye level, as in the reference',
+    );
+    if (!mounted || text == null || text.trim().isEmpty) return;
+    _fixPending = true;
+    _update(_editor!.add(section, text));
+  }
+
   void _showMessage(String message) {
     if (!mounted) return;
     ScaffoldMessenger.of(context)
@@ -129,14 +230,12 @@ class _BlueprintScreenState extends State<BlueprintScreen> {
     required int maxLength,
     bool allowEmpty = false,
   }) {
-    return showDialog<String>(
-      context: context,
-      builder: (context) => _TextDialog(
-        title: title,
-        initial: initial,
-        maxLength: maxLength,
-        allowEmpty: allowEmpty,
-      ),
+    return showTextEditDialog(
+      context,
+      title: title,
+      initial: initial,
+      maxLength: maxLength,
+      allowEmpty: allowEmpty,
     );
   }
 
@@ -208,6 +307,8 @@ class _BlueprintScreenState extends State<BlueprintScreen> {
           child: ListView(
             padding: EdgeInsets.fromLTRB(24, 4, 24, bottomInset + 24),
             children: [
+              const CreateStepBar(current: CreateStep.blueprint),
+              const SizedBox(height: 12),
               CheckStatusCard(
                 attempts: _run.attempts,
                 passed: _run.passed,
@@ -231,8 +332,11 @@ class _BlueprintScreenState extends State<BlueprintScreen> {
                 key: const Key('rebuild-blueprint-button'),
                 label: _rebuilding ? 'Rebuilding…' : 'Rebuild draft',
                 icon: CupertinoIcons.arrow_clockwise,
-                onPressed: _rebuilding || _saving ? null : _rebuild,
+                onPressed: _rebuilding || _saving || _planning
+                    ? null
+                    : _rebuild,
               ),
+              ..._buildPlanning(context),
               if (widget.showInspection && _run.rawExposed) ...[
                 const SizedBox(height: 24),
                 RawOutputPanel(attempts: _run.attempts),
@@ -242,6 +346,57 @@ class _BlueprintScreenState extends State<BlueprintScreen> {
         ),
       ),
     );
+  }
+
+  List<Widget> _buildPlanning(BuildContext context) {
+    final blocker = _planBlocker;
+    final busy = _saving || _rebuilding;
+    final textTheme = Theme.of(context).textTheme;
+
+    return [
+      const SizedBox(height: 28),
+      const SectionTitle('Variations'),
+      AppCard(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text('How many plans?', style: textTheme.bodyMedium),
+            const SizedBox(height: 10),
+            CupertinoSlidingSegmentedControl<int>(
+              key: const Key('plan-count'),
+              groupValue: _planCount,
+              onValueChanged: (value) {
+                if (value != null) setState(() => _planCount = value);
+              },
+              children: {
+                for (var n = PlanLimits.minPlans; n <= PlanLimits.maxPlans; n++)
+                  n: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 6),
+                    child: Text('$n'),
+                  ),
+              },
+            ),
+            if (blocker != null) ...[
+              const SizedBox(height: 10),
+              Text(
+                blocker,
+                key: const Key('plan-blocker'),
+                style: textTheme.bodyMedium,
+              ),
+            ],
+            const SizedBox(height: 14),
+            PrimaryButton(
+              key: const Key('plan-variations-button'),
+              label: 'Plan variations',
+              icon: CupertinoIcons.square_stack_3d_up,
+              busy: _planning,
+              onPressed: blocker == null && !busy ? _plan : null,
+            ),
+          ],
+        ),
+      ),
+    ];
   }
 
   List<Widget> _buildEditor(BuildContext context, BlueprintEditor editor) {
@@ -319,7 +474,7 @@ class _BlueprintScreenState extends State<BlueprintScreen> {
         label: editor.isDirty ? 'Save blueprint' : 'Saved',
         icon: CupertinoIcons.checkmark_alt,
         busy: _saving,
-        onPressed: editor.canSave && !_rebuilding ? _save : null,
+        onPressed: editor.canSave && !_rebuilding && !_planning ? _save : null,
       ),
     ];
   }
@@ -478,7 +633,7 @@ class _ItemRow extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 8),
-            _OriginTag(fromUser: item.fromUser),
+            OriginTag(fromUser: item.fromUser),
             PopupMenuButton<_ItemAction>(
               tooltip: 'Item options',
               icon: const Icon(CupertinoIcons.ellipsis, size: 18),
@@ -510,27 +665,6 @@ class _ItemAction {
   const _ItemAction(this.moveTo);
 
   final BlueprintSection? moveTo;
-}
-
-class _OriginTag extends StatelessWidget {
-  const _OriginTag({required this.fromUser});
-
-  final bool fromUser;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-      decoration: BoxDecoration(
-        color: fromUser ? AppColors.accentWash : AppColors.fillSubtle,
-        borderRadius: BorderRadius.circular(AppRadius.pill),
-      ),
-      child: Text(
-        fromUser ? 'You' : 'AI',
-        style: Theme.of(context).textTheme.labelSmall,
-      ),
-    );
-  }
 }
 
 class _EditableRow extends StatelessWidget {
@@ -571,67 +705,6 @@ class _EditableRow extends StatelessWidget {
           ],
         ),
       ),
-    );
-  }
-}
-
-class _TextDialog extends StatefulWidget {
-  const _TextDialog({
-    required this.title,
-    required this.initial,
-    required this.maxLength,
-    required this.allowEmpty,
-  });
-
-  final String title;
-  final String initial;
-  final int maxLength;
-  final bool allowEmpty;
-
-  @override
-  State<_TextDialog> createState() => _TextDialogState();
-}
-
-class _TextDialogState extends State<_TextDialog> {
-  late final TextEditingController _controller = TextEditingController(
-    text: widget.initial,
-  );
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      title: Text(widget.title),
-      content: TextField(
-        key: const Key('blueprint-text-field'),
-        controller: _controller,
-        autofocus: true,
-        maxLength: widget.maxLength,
-        minLines: 1,
-        maxLines: 4,
-        textCapitalization: TextCapitalization.sentences,
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
-        ),
-        ValueListenableBuilder(
-          valueListenable: _controller,
-          builder: (context, value, _) => TextButton(
-            key: const Key('blueprint-text-save'),
-            onPressed: widget.allowEmpty || value.text.trim().isNotEmpty
-                ? () => Navigator.of(context).pop(_controller.text)
-                : null,
-            child: const Text('Done'),
-          ),
-        ),
-      ],
     );
   }
 }

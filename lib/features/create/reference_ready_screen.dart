@@ -15,6 +15,7 @@ import 'analysis_service.dart';
 import 'asset_service.dart';
 import 'blueprint_screen.dart';
 import 'blueprint_service.dart';
+import 'create_steps.dart';
 import 'model_run_widgets.dart';
 
 /// Shows what the backend stored for a reference slide: the original next to
@@ -59,10 +60,11 @@ class _ReferenceReadyScreenState extends State<ReferenceReadyScreen> {
       if (!mounted) return;
       HapticFeedback.mediumImpact();
       await Navigator.of(context).push(
-        MaterialPageRoute<void>(
-          builder: (_) => BlueprintScreen(
+        CreateStep.blueprint.route<void>(
+          (_) => BlueprintScreen(
             run: run,
             service: widget.blueprintService,
+            referencePath: widget.asset.analysisPath,
             showInspection: widget.showInspection,
           ),
         ),
@@ -131,6 +133,8 @@ class _ReferenceReadyScreenState extends State<ReferenceReadyScreen> {
           child: ListView(
             padding: EdgeInsets.fromLTRB(24, 4, 24, bottomInset + 24),
             children: [
+              const CreateStepBar(current: CreateStep.reference),
+              const SizedBox(height: 12),
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [

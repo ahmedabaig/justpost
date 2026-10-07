@@ -5,7 +5,7 @@ import 'package:flutter/services.dart';
 import '../../theme/app_theme.dart';
 
 /// One request to a model and the result of checking its reply, as returned
-/// by `analyze_asset` and `build_blueprint`.
+/// by `analyze_asset`, `build_blueprint` and `plan_variations`.
 @immutable
 class ModelAttempt {
   const ModelAttempt({
@@ -273,6 +273,147 @@ class AppCard extends StatelessWidget {
         border: Border.all(color: AppColors.hairline, width: 0.5),
       ),
       child: child,
+    );
+  }
+}
+
+/// Marks whether an item came from the AI or the user.
+class OriginTag extends StatelessWidget {
+  const OriginTag({super.key, required this.fromUser});
+
+  final bool fromUser;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+      decoration: BoxDecoration(
+        color: fromUser ? AppColors.accentWash : AppColors.fillSubtle,
+        borderRadius: BorderRadius.circular(AppRadius.pill),
+      ),
+      child: Text(
+        fromUser ? 'You' : 'AI',
+        style: Theme.of(context).textTheme.labelSmall,
+      ),
+    );
+  }
+}
+
+/// Asks for one piece of text. Resolves to null when cancelled.
+Future<String?> showTextEditDialog(
+  BuildContext context, {
+  required String title,
+  String initial = '',
+  required int maxLength,
+  bool allowEmpty = false,
+  bool singleLine = false,
+  String? message,
+  String? hint,
+}) {
+  return showDialog<String>(
+    context: context,
+    builder: (context) => _TextEditDialog(
+      title: title,
+      initial: initial,
+      maxLength: maxLength,
+      allowEmpty: allowEmpty,
+      singleLine: singleLine,
+      message: message,
+      hint: hint,
+    ),
+  );
+}
+
+class _TextEditDialog extends StatefulWidget {
+  const _TextEditDialog({
+    required this.title,
+    required this.initial,
+    required this.maxLength,
+    required this.allowEmpty,
+    required this.singleLine,
+    this.message,
+    this.hint,
+  });
+
+  final String title;
+  final String initial;
+  final int maxLength;
+  final bool allowEmpty;
+  final bool singleLine;
+
+  /// Shown above the field.
+  final String? message;
+  final String? hint;
+
+  @override
+  State<_TextEditDialog> createState() => _TextEditDialogState();
+}
+
+class _TextEditDialogState extends State<_TextEditDialog> {
+  late final TextEditingController _controller = TextEditingController(
+    text: widget.initial,
+  );
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final message = widget.message;
+    final field = TextField(
+      key: const Key('text-edit-field'),
+      controller: _controller,
+      autofocus: true,
+      maxLength: widget.maxLength,
+      minLines: 1,
+      maxLines: 4,
+      textCapitalization: TextCapitalization.sentences,
+      decoration: InputDecoration(hintText: widget.hint),
+      // Wraps visually but never inserts a line break.
+      textInputAction: widget.singleLine ? TextInputAction.done : null,
+      inputFormatters: widget.singleLine
+          ? [FilteringTextInputFormatter.deny(RegExp(r'[\r\n]'))]
+          : null,
+    );
+
+    return AlertDialog(
+      title: Text(widget.title),
+      content: message == null
+          ? field
+          : SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    message,
+                    key: const Key('text-edit-message'),
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                  const SizedBox(height: 12),
+                  field,
+                ],
+              ),
+            ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancel'),
+        ),
+        ValueListenableBuilder(
+          valueListenable: _controller,
+          builder: (context, value, _) => TextButton(
+            key: const Key('text-edit-save'),
+            onPressed: widget.allowEmpty || value.text.trim().isNotEmpty
+                ? () => Navigator.of(context).pop(_controller.text)
+                : null,
+            child: const Text('Done'),
+          ),
+        ),
+      ],
     );
   }
 }

@@ -10,7 +10,7 @@ from __future__ import annotations
 import json
 import re
 import time
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 from typing import Any, Generic, Protocol, TypeVar
 
@@ -39,7 +39,29 @@ class ModelReply:
 
 
 class VisionModel(Protocol):
-    def respond(self, instructions: str, user_text: str, image_webp: bytes) -> ModelReply: ...
+    def respond(
+        self,
+        instructions: str,
+        user_text: str,
+        image_webp: bytes,
+        extra_images: Sequence[bytes] = (),
+    ) -> ModelReply: ...
+
+
+class ModelRefusal(ModelError):
+    """The model declined the request, for example for content-safety reasons."""
+
+
+@dataclass(frozen=True)
+class ImageReply:
+    image: bytes
+    model: str
+    input_tokens: int | None = None
+    output_tokens: int | None = None
+
+
+class ImageModel(Protocol):
+    def edit(self, request: str, reference_webp: bytes, size: str) -> ImageReply: ...
 
 
 @dataclass(frozen=True)
@@ -130,6 +152,7 @@ def run_attempts(
     image_webp: bytes,
     check: Callable[[dict[str, Any]], tuple[T | None, CheckReport]],
     attempts: int = MAX_ATTEMPTS,
+    extra_images: Sequence[bytes] = (),
 ) -> AttemptsOutcome[T]:
     """Asks the model up to `attempts` times and keeps the first reply that passes."""
     records: list[Attempt] = []
@@ -137,7 +160,11 @@ def run_attempts(
     for _ in range(attempts):
         started = time.monotonic()
         try:
-            reply = model.respond(build_instructions(previous), user_text, image_webp)
+            instructions = build_instructions(previous)
+            if extra_images:
+                reply = model.respond(instructions, user_text, image_webp, extra_images)
+            else:
+                reply = model.respond(instructions, user_text, image_webp)
         except ModelError:
             records.append(
                 Attempt(

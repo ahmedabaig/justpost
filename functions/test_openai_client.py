@@ -62,6 +62,18 @@ def test_sends_the_image_inline_and_reads_the_reply():
     assert image == {"type": "input_image", "image_url": expected, "detail": "high"}
 
 
+def test_extra_images_follow_the_first_in_order():
+    model, responses = _model_returning(
+        _response([SimpleNamespace(type="output_text", text="{}")], "{}")
+    )
+
+    model.respond("Check it.", "Questions.", b"reference", [b"generated"])
+
+    content = responses.calls[0]["input"][0]["content"]
+    assert [part["type"] for part in content] == ["input_text", "input_image", "input_image"]
+    assert content[2]["image_url"].endswith(base64.b64encode(b"generated").decode())
+
+
 def test_refusals_are_flagged():
     model, _ = _model_returning(
         _response([SimpleNamespace(type="refusal", refusal="I can't help with that.")], "")

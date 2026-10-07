@@ -71,10 +71,12 @@ class CenteredScrollBody extends StatelessWidget {
     super.key,
     required this.children,
     this.padding = EdgeInsets.zero,
+    this.physics,
   });
 
   final List<Widget> children;
   final EdgeInsets padding;
+  final ScrollPhysics? physics;
 
   @override
   Widget build(BuildContext context) {
@@ -82,6 +84,7 @@ class CenteredScrollBody extends StatelessWidget {
       builder: (context, constraints) {
         return SingleChildScrollView(
           padding: padding,
+          physics: physics,
           child: ConstrainedBox(
             constraints: BoxConstraints(
               minHeight: math.max(0, constraints.maxHeight - padding.vertical),
